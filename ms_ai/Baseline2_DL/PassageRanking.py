@@ -79,7 +79,7 @@ def TrainAndValidate(trainfile):
     p_max_words = 50
     emb_dim = 50
     num_classes = 2
-    minibatch_size = 250
+    minibatch_size = 500
     epoch_size = 100000 #No.of samples in training set
     total_epochs = 200 #Total number of epochs to run
     query_total_dim = q_max_words*emb_dim

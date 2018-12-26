@@ -1,4 +1,6 @@
 import re
+import nltk
+
 
 #Initialize Global variables 
 GloveEmbeddings = {}
@@ -31,7 +33,7 @@ def TextDataToCTF(inputfile,outputfile,isEvaluation):
         query_id,query,passage,label = tokens[0],tokens[1],tokens[2],tokens[3]
 
         #****Query Processing****
-        words = re.split('\W+', query)
+        words = nltk.word_tokenize(query)
         words = [x for x in words if x] # to remove empty words 
         word_count = len(words)
         remaining = max_query_words - word_count  
@@ -48,7 +50,7 @@ def TextDataToCTF(inputfile,outputfile,isEvaluation):
         query_feature_vector = query_feature_vector.strip() 
 
         #***** Passage Processing **********
-        words = re.split('\W+', passage)
+        words = nltk.word_tokenize(passage)
         words = [x for x in words if x] # to remove empty words 
         word_count = len(words)
         remaining = max_passage_words - word_count  

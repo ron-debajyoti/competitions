@@ -1,18 +1,35 @@
 import math
 import pickle
+import nltk
+import string
 
 
-#Initialize Global variables 
+#Initialize Global variables
 docIDFDict = {}
 avgDocLength = 0
-
+stop_words = set(nltk.corpus.stopwords.words('english'))
 
 def GetCorpus(inputfile,corpusfile):
+    count = 0
+    ps = nltk.stem.PorterStemmer()
+    wl = nltk.stem.WordNetLemmatizer()
     f = open(inputfile,"r",encoding="utf-8")
     fw = open(corpusfile,"w",encoding="utf-8")
+    table = str.maketrans('', '', string.punctuation)
     for line in f:
         passage = line.strip().lower().split("\t")[2]
-        fw.write(passage+"\n")
+        #print(type(passage))
+        passage = (passage.lower()).translate(table)
+        words = nltk.word_tokenize(passage)
+        for w in words:
+            if w not in stop_words:
+                w = ps.stem(w)
+                w = wl.lemmatize(w)
+                fw.write(w+" ")
+
+        count += 1
+        fw.write("\n")
+        print(count)
     f.close()
     fw.close()
 
@@ -112,13 +129,13 @@ def RunBM25OnEvaluationSet(testfile,outputfile):
 
 if __name__ == '__main__' :
 
-    inputFileName = "Data.tsv"   # This file should be in the following format : queryid \t query \t passage \t label \t passageid
+    inputFileName = "data.tsv"   # This file should be in the following format : queryid \t query \t passage \t label \t passageid
     testFileName = "eval1_unlabelled.tsv"  # This file should be in the following format : queryid \t query \t passage \t passageid # order of the query
     corpusFileName = "corpus.tsv" 
-    outputFileName = "answer.tsv"
+    outputFileName = "new_answer.tsv"
 
-    GetCorpus(inputFileName,corpusFileName)    # Gets all the passages(docs) and stores in corpusFile. you can comment this line if corpus file is already generated
-    print("Corpus File is created.")
+    #GetCorpus(inputFileName,corpusFileName)    # Gets all the passages(docs) and stores in corpusFile. you can comment this line if corpus file is already generated
+    #print("Corpus File is created.")
     IDF_Generator(corpusFileName)   # Calculates IDF scores. 
     #RunBM25OnTestData(testFileName,outputFileName)
     print("IDF Dictionary Generated.")

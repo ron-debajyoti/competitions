@@ -3,7 +3,6 @@ import csv
 import numpy as np 
 import pandas as pd
 from io import StringIO
-import matplotlib.pyplot as plt
 import sklearn
 
 from sklearn.model_selection import train_test_split,GridSearchCV
@@ -32,10 +31,16 @@ def Naive_Bayes_model(data):
 	predicted = text_clf.predict(x_test)
 	print(np.mean(predicted == y_test))	
 
+	return gs_clf
+
+
+
+
+
 
 def SVM_model(data):
 	x_train,x_test,y_train,y_test = train_test_split(data['Complaint_reason'],data['Complaint_Status'], random_state = 42)
-	text_clf_svm = Pipeline([('vect', CountVectorizer()),('tfidf', TfidfTransformer()),('clf', SGDClassifier(loss='hinge', penalty='l2',alpha=1e-2, n_iter=10, random_state=4)),])
+	text_clf_svm = Pipeline([('vect', CountVectorizer()),('tfidf', TfidfTransformer()),('clf', SGDClassifier(loss='hinge', penalty='l2',alpha=1e-3, max_iter=100, tol = 1e-5,random_state=4)),])
 	text_clf_svm = text_clf_svm.fit(x_train,y_train)
 
 	parameters = {'vect__ngram_range': [(1, 1),(1,2)], 'tfidf__use_idf': (True,False),'clf__alpha': (1e-2,1e-3)}
@@ -44,16 +49,27 @@ def SVM_model(data):
 	#print(gs_clf_svm.best_params_)
 
 	predicted = gs_clf_svm.predict(x_test)
-	print(np.mean(predicted == y_test))	
-	print(y_test)
+	print(np.mean(predicted == y_test))
+	#print(y_test.shape)	
+	#print(predicted.shape)
 	
 	return gs_clf_svm
 
 
-def prediction(model_name,test_data):
-	predict_data = model_name.predict(test_data)
-	print(predict_data)
 
+
+
+def prediction(model_name,test_data):
+	file = open("sample.csv","w")
+	count=1
+	predicted_data = model_name.predict(test_data['Complaint_reason'])
+	predicted_data = predicted_data.tolist()
+	for l in predicted_data:
+		file.write("Te-"+str(count)+","+l+"\n")
+		count+=1
+	file.close()
+
+	
 
 
 if __name__ == "__main__":
@@ -66,35 +82,26 @@ if __name__ == "__main__":
 	data['category_id'] = data['Complaint_Status'].factorize()[0]
 
 
-	category_id_data = data[['Complaint_Status', 'category_id']].drop_duplicates().sort_values('category_id')
+	'''category_id_data = data[['Complaint_Status', 'category_id']].drop_duplicates().sort_values('category_id')
 	category_to_id = dict(category_id_data.values)
-	id_to_category = dict(category_id_data[['category_id', 'Complaint_Status']].values)
+	id_to_category = dict(category_id_data[['category_id', 'Complaint_Status']].values)'''
 
 
 
-	'''
 	## for the test data
-	test_data = data = pd.read_csv("test.csv",sep=",")
-	test_col = ['Complaint-ID','Complaint-reason']
+	test_data = pd.read_csv("test.csv",sep=",")
+	test_col = ['Complaint-reason']
 	test_data = test_data[test_col]
-	test_data = test_data[pd.notnull(data['Complaint-ID'])]
-	test_data = test_data[pd.notnull(data['Complaint-reason'])]
-	test_data.columns = ['Complaint_ID','Complaint_reason']
+	#test_data = test_data[pd.notnull(test_data['Complaint-ID'])]
+	test_data = test_data[pd.notnull(test_data['Complaint-reason'])]
+	test_data.columns = ['Complaint_reason']
 	test_data['category_id'] = test_data['Complaint_reason'].factorize()[0]
-
-	'''
-
-	'''
-	category_id_data = test_data[['Complaint_reason', 'category_id']].drop_duplicates().sort_values('category_id')
-	category_to_id = dict(category_id_data.values)
-	id_to_category = dict(category_id_data[['category_id', 'Complaint_reason']].values)
-	'''
 
 	print("For the SVM model :: ")
 	model = SVM_model(data)
 
-
-	#prediction(model,test_data)
+	#print(test_data.shape)
+	prediction(model,test_data)
 	
 
 

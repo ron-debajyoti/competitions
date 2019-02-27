@@ -45,8 +45,12 @@ if __name__ == "__main__":
 	#refined_data
 	if os.path.isfile('./refined.pkl') != True :
 		count = 0 # refers to the count of the index of the cell from training_data 
+		columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","INTEREST_START_DATE","CURRENT_ROI","NET_RECEIVABLE","NET_LTV","FORECLOSURE"]
 		refined_data = data.copy()
-		for i in refined_data["AGREEMENTID"]:
+		refined_data = refined_data.sort_values(["AGREEMENTID","CUSTOMERID"],ascending = True)
+		refined_data = refined_data.groupby(["AGREEMENTID","CUSTOMERID"],sort=False).last().reset_index()
+		
+		'''for i in refined_data["AGREEMENTID"]:
 			j = training_data["AGREEMENTID"][count]
 			if i == j:
 				refined_data["FORECLOSURE"][count] = j
@@ -56,13 +60,13 @@ if __name__ == "__main__":
 			print(i)
 		pickle_out = open("refined.pkl","wb")
 		pickle.dump(refined_data,pickle_out)
-		pickle_out.close()
+		pickle_out.close()'''
 	else:
 		f1 = open("refined.pkl","rb")
 		refined_data = pickle.load(f)
 
-	print(refined_data.head(30))
+	print(refined_data.head())
 
-	Logistic(data,training_data)
+	#Logistic(data,training_data)
 	#print(len(data["AGREEMENTID"]))
 

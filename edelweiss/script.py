@@ -12,23 +12,40 @@ import pickle
 
 from sklearn.feature_selection import RFE
 from sklearn.model_selection import train_test_split,GridSearchCV
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn import metrics
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegressionCV
+from sklearn import metrics,preprocessing
 
 
 
 def Logistic(training_data,columns):
 	x_train,x_test,y_train,y_test = train_test_split(training_data[columns[:-1]],training_data[columns[-1]],random_state=0,train_size = 0.7)
-	multi_logr = LogisticRegression(multi_class = "multinomial",solver="saga").fit(x_train,y_train)
+	x_train = preprocessing.scale(x_train)
+	x_test = preprocessing.scale(x_test)
+	multi_logr = LogisticRegressionCV(cv=5,fit_intercept = True,penalty = "l2",solver="lbfgs").fit(x_train,y_train)
 	print(metrics.accuracy_score(y_test,multi_logr.predict(x_test)))
 	print("\n")
 	return multi_logr
 
 
+def SVM_Grid(training_data,columns):
+	x_train,x_test,y_train,y_test = train_test_split(training_data[columns[:-1]],training_data[columns[-1]],random_state=0,train_size = 0.7)
+	svc_model = SVC(probability = True)
+	Cs = [0.001, 0.01, 0.1, 1, 10]
+	gammas = [0.001, 0.01, 0.1, 1]
+	param_grid = {'C': Cs, 'gamma' : gammas}
+	print("1*-")
+	grid_search = GridSearchCV(svc_model,param_grid,cv = 5)
+	print("2*-")
+	grid_search = grid_search.fit(x_train,y_train)
+
+	print(metrics.accuracy_score(y_test,grid_search.predict(x_test)))
+	print("\n")
+	return grid_search
+
 
 def prediction(model_name,test_data):
-	predicted_data = model_name.predict_proba(test_data)[:,1]
+	predicted_data = model_name.predict_proba(preprocessing.scale(test_data))[:,1]
 	l = predicted_data.tolist()
 	predicted_data = np.reshape(predicted_data,(len(l),-1))
 	pr_data = pd.DataFrame({"FORECLOSURE":np.array(predicted_data).flatten()})
@@ -46,7 +63,7 @@ if __name__ == "__main__":
 	#loading.loading_customerdata()
 	with open("customer_data.pkl","rb") as f:
 		data = pickle.load(f)
-		columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","NET_LTV"]
+		columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","BALANCE_TENURE","NET_LTV","FOIR"]
 		data = data[columns]
 		for column in data.columns:
 			data = data[pd.notnull(data[column])]
@@ -70,7 +87,7 @@ if __name__ == "__main__":
 	#refined_data
 	if os.path.isfile('./refined.pkl') == False :
 		count = 0 # refers to the count of the index of the cell from training_data 
-		columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","NET_LTV","FORECLOSURE"]
+		columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","BALANCE_TENURE","NET_LTV","FOIR","FORECLOSURE"]
 		refined_data = data.copy()
 		refined_data = refined_data.sort_values(["AGREEMENTID","CUSTOMERID"],ascending = True)
 		refined_data = refined_data.groupby(["AGREEMENTID","CUSTOMERID"],sort=False).last().reset_index()
@@ -91,7 +108,7 @@ if __name__ == "__main__":
 		f1 = open("refined.pkl","rb")
 		refined_data = pickle.load(f1)
 		f1.close()
-	columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","NET_LTV","FORECLOSURE"]
+	columns = ["AGREEMENTID","CUSTOMERID","LOAN_AMT","NET_DISBURSED_AMT","CURRENT_ROI","NET_RECEIVABLE","BALANCE_TENURE","NET_LTV","FOIR","FORECLOSURE"]
 	#print(refined_data.dtypes)
 
 
@@ -108,10 +125,11 @@ if __name__ == "__main__":
 		for i in refined_test_data["AGREEMENTID"]:
 			j = test_data["AGREEMENTID"][count]
 			if i == j:
-				count +=1
+					count +=1
 			else:
 				refined_test_data = refined_test_data[refined_test_data.AGREEMENTID != i]
 			print(i)
+
 		pickle_out = open("refined_test.pkl","wb")
 		pickle.dump(refined_test_data,pickle_out)
 		pickle_out.close()
@@ -121,6 +139,7 @@ if __name__ == "__main__":
 		f2.close()
 
 
+	#print(refined_test_data.head())
 	# training and execution of the model
 	model = Logistic(refined_data,columns)
 	predicted_data = prediction(model,refined_test_data)
@@ -130,11 +149,4 @@ if __name__ == "__main__":
 	df = df["AGREEMENTID"].reset_index(drop=True)
 	df = pd.concat([df,predicted_data],1)
 	df.to_csv("result.csv",index=False,sep=',',encoding='utf-8')
-
-
-
-
-
-
-
-
+	

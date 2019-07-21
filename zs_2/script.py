@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics, preprocessing
 from sklearn.linear_model import SGDClassifier
+import pickle,os
 
 import matplotlib.pyplot as plt
 import json
@@ -93,28 +94,37 @@ def pre_processing():
             le = LabelEncoder()
             dataset[column] = le.fit_transform(dataset[column])
 
-    test_dataset = pd.DataFrame(columns=dataset.columns)
-    ''' Separating the testing and the training data '''
-    for index, row in dataset.iterrows():
-        if pd.isna(row['is_goal']):
-            test_dataset = test_dataset.append(row)
-    dataset['is_goal'] = dataset['is_goal'].fillna(0)
+    if not os.path.isfile('./test_dataset.pkl'):
+        test_dataset = pd.DataFrame(columns=dataset.columns)
+        ''' Separating the testing and the training data '''
+        for index, row in dataset.iterrows():
+            if pd.isna(row['is_goal']):
+                test_dataset = test_dataset.append(row)
+                dataset.loc[index]['shot_id_number']= index+1
+                print("$%#$%%%%%"+ str(index) + "      " +  str(dataset.loc[index]['shot_id_number']))
+        pickle_out = open("test_dataset.pkl","wb")
+        pickle.dump(test_dataset,pickle_out)
+        pickle_out.close()
+    else:
+        file = open("test_dataset.pkl","rb")
+        test_dataset = pickle.load(file)
+        file.close()
 
+    dataset = dataset.dropna()
+    print(dataset[dataset.isna().any(axis=1)])
     top_ten_features = feature_selection(dataset)
     return top_ten_features,dataset,test_dataset
 
 
 
 def prediction(model,test_data,features):
-    file = open("sample.csv","w")
-    output = pd.DataFrame(columns=['shot_id_number', 'is_goal'])
-
-    for index,row in test_data.iterrows():
-        output['shot_id_number'][index] = row['shot_id_number']
-        output['is_goal'][index]= model.predict_proba(scaler.fit_transform(preprocessing.scale(
+    predicted_output = model.predict_proba(scaler.fit_transform(preprocessing.scale(
             test_data[features['Specs'].tolist()])))[:,0]
 
-    print(output) # numpy array
+    output = pd.DataFrame({'shot_id_number':test_data['shot_id_number'],
+                           'is_goal':predicted_output.tolist()})
+    print(output)
+    output.to_csv('submission.csv',sep=',')
 
 
 

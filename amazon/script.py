@@ -57,7 +57,8 @@ def analysis(dataset,topic_list):
     return top_words_distribution, dataset
 
 
-def SVM_model(top_words_distribution,dataset):
+#
+
 
 
 
